@@ -45,7 +45,7 @@ get_min <- function(Time) { # create a function with the name my_function
 }
 
 # Import Data
-data <- read_csv("data/data.csv") |>
+data <- read_csv(here::here("data/data.csv")) |>
   mutate(Participant = factor(Participant)) |>
   mutate("Min" = get_min(Time),
          Min = round(Min, 2)) |>
@@ -58,6 +58,8 @@ data <- read_csv("data/data.csv") |>
   filter(value != 0)
 
 ```
+
+## Easy Plot
 
 ```{r}
 i <- 0
@@ -73,7 +75,7 @@ group <- data |>
             position = "identity",
             aes(color = Participant)) +
   scale_color_colorblind() +
-  labs(x = "Minutes", y = "Ranking") + 
+  labs(x = "Minutes", y = "Importance") + 
   scale_x_continuous(breaks = seq(0, 100, 10),
                      minor_breaks = NULL) +
   scale_y_continuous(minor_breaks = NULL) +
@@ -83,6 +85,8 @@ ggsave(paste0("out/Group", group_num, "_og.png"), width = 400, height = 200, uni
 ggsave(paste0("out/Group", group_num, "_og.pdf"), width = 400, height = 200, units = "mm", bg = "white")
 }
 ```
+
+## Trend Plot
 
 ```{r}
 i <- 0
@@ -126,7 +130,65 @@ ggplot(joined, aes(x = Min,
             aes(y = Mean),
             se = FALSE) +
   scale_color_colorblind() +
-  labs(x = "Minutes", y = "Ranking") + 
+  labs(x = "Minutes", y = "Importance") + 
+  scale_x_continuous(breaks = seq(0, 100, 10),
+                     minor_breaks = NULL) +
+  scale_y_continuous(minor_breaks = NULL) +
+  facet_wrap(~ES, nrow = 4)
+
+ggsave(paste0("out/Group", group_num, ".png"), width = 400, height = 200, units = "mm", bg = "white")
+ggsave(paste0("out/Group", group_num, ".pdf"), width = 400, height = 200, units = "mm", bg = "white")
+}
+```
+
+## Rolling rate Plot
+
+```{r}
+time_interval <- 0.05
+window <- 10
+k <- round(window/time_interval)
+i <- 0
+groups <- unique(data$Group)
+for(i in i:3){
+  i <- i + 1
+  group_num <- groups[i]
+group <- data |>
+  filter(Group == group_num, value != 0) 
+
+interpolated <- group |>
+  complete(Min = seq(min(Min), max(Min), by = time_interval), 
+           Group = group_num,
+           Participant = factor(1:6),
+           ES = ES) |>
+  left_join(group, by = c("ES", "Min", "Group", "Participant")) |>
+  select(ES, Min, Group, Participant, value.x) |>
+  rename("Value" = value.x) |>
+  arrange(Group, Participant, ES, Min) |>
+  group_by(Group, Participant, ES) |>
+  fill(Value, .direction = "down") |>
+  mutate(Value = round(Value)) |>
+  ungroup()
+
+joined <- interpolated |>
+  group_by(Group, ES, Min) |>
+  summarise("ES" = ES,
+            "Group" = Group,
+            "Min" = Min,
+            "Maximum" = max(Value),
+            "Minimum" = min(Value)) |>
+  left_join(interpolated, by = c("Group", "ES", "Min")) 
+  arrange(Group, Participant, Min) |>
+  mutate(rolling_avg = rollmean(Maximum, k= window/time_interval, fill=NA, align='right'))
+
+ggplot(joined, aes(x = Min, 
+           y = Value)) +
+    geom_ribbon(aes(ymin = Minimum,
+                  ymax = Max), alpha = 1) +
+  geom_smooth(method = "loess",
+            aes(y = Mean),
+            se = FALSE) +
+  scale_color_colorblind() +
+  labs(x = "Minutes", y = "Importance") + 
   scale_x_continuous(breaks = seq(0, 100, 10),
                      minor_breaks = NULL) +
   scale_y_continuous(minor_breaks = NULL) +
