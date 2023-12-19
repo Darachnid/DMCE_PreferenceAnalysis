@@ -1,0 +1,138 @@
+---
+title: "Analysis"
+format: html
+editor: visual
+---
+
+Find lit on stats for con/divergence
+
+apply Spearman Rank Correlation on the mean value for each participant in the past 5 min as a continuous scale for every point with y being -1 for divergence and 1 for convergence
+
+a gradient shows the value mean on cont scale
+
+create a model that predicts the value that it shows in in the geom_smooth(). and then genererate error bars to use.
+
+Create something that is related to the area in the boxes
+
+-   a rolling area
+
+    -   time \* (max - min)
+
+## Libraries
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+library(ggpubr)
+library(zoo)
+```
+
+## Data Prep
+
+```{r}
+
+# Set theme
+theme_set(theme_minimal())
+
+
+# Define Functions
+get_min <- function(Time) { # create a function with the name my_function
+  hour <- format(strptime(Time, format="%H:%M:%S"), "%H") 
+  min <- format(strptime(Time, format="%H:%M:%S"), "%M")
+  sec <- format(strptime(Time, format="%H:%M:%S"), "%S") 
+  min <- as.numeric(min) + as.numeric(sec) * (1/60) + as.numeric(hour) * 60
+  return(min)
+}
+
+# Import Data
+data <- read_csv("data/data.csv") |>
+  mutate(Participant = factor(Participant)) |>
+  mutate("Min" = get_min(Time),
+         Min = round(Min, 2)) |>
+  select(-Time) |>
+  arrange(Group, Participant, Min) |>
+  mutate(diff = last(Min)) |>
+  filter(!is.na(Swimming)) |>
+  pivot_longer(cols = c(Swimming, Flooding, Biodiversity, `Water Quality`),
+               names_to = "ES") |>
+  filter(value != 0)
+
+```
+
+```{r}
+i <- 0
+groups <- unique(data$Group)
+for(i in i:3){
+  i <- i + 1
+  group_num <- groups[i]
+group <- data |>
+  filter(Group == group_num, value != 0) |>
+  ggplot(aes(x = Min, 
+           y = Value)) +
+  geom_line(size = 1,
+            position = "identity",
+            aes(color = Participant)) +
+  scale_color_colorblind() +
+  labs(x = "Minutes", y = "Ranking") + 
+  scale_x_continuous(breaks = seq(0, 100, 10),
+                     minor_breaks = NULL) +
+  scale_y_continuous(minor_breaks = NULL) +
+  facet_wrap(~ES, nrow = 4)
+
+ggsave(paste0("out/Group", group_num, "_og.png"), width = 400, height = 200, units = "mm", bg = "white")
+ggsave(paste0("out/Group", group_num, "_og.pdf"), width = 400, height = 200, units = "mm", bg = "white")
+}
+```
+
+```{r}
+i <- 0
+groups <- unique(data$Group)
+for(i in i:3){
+  i <- i + 1
+  group_num <- groups[i]
+group <- data |>
+  filter(Group == group_num, value != 0) 
+
+interpolated <- group |>
+  complete(Min = seq(min(Min), max(Min), by = 0.05), 
+           Group = group_num,
+           Participant = factor(1:6),
+           ES = ES) |>
+  left_join(group, by = c("ES", "Min", "Group", "Participant")) |>
+  select(ES, Min, Group, Participant, value.x) |>
+  rename("Value" = value.x) |>
+  arrange(Group, Participant, ES, Min) |>
+  group_by(Group, Participant, ES) |>
+  fill(Value, .direction = "down") |>
+  mutate(Value = round(Value)) |>
+  ungroup()
+
+joined <- interpolated |>
+  group_by(Group, ES, Min) |>
+  summarise("ES" = ES,
+            "Group" = Group,
+            "Min" = Min,
+            "Max" = max(Value),
+            "Minimum" = min(Value),
+            "Mean" = mean(Value),
+            "sd" = sd(Value)) |>
+  left_join(interpolated, by = c("Group", "ES", "Min")) 
+
+ggplot(joined, aes(x = Min, 
+           y = Value)) +
+    geom_ribbon(aes(ymin = Minimum,
+                  ymax = Max), alpha = 1) +
+  geom_smooth(method = "loess",
+            aes(y = Mean),
+            se = FALSE) +
+  scale_color_colorblind() +
+  labs(x = "Minutes", y = "Ranking") + 
+  scale_x_continuous(breaks = seq(0, 100, 10),
+                     minor_breaks = NULL) +
+  scale_y_continuous(minor_breaks = NULL) +
+  facet_wrap(~ES, nrow = 4)
+
+ggsave(paste0("out/Group", group_num, ".png"), width = 400, height = 200, units = "mm", bg = "white")
+ggsave(paste0("out/Group", group_num, ".pdf"), width = 400, height = 200, units = "mm", bg = "white")
+}
+```
