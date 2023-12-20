@@ -7,11 +7,6 @@ library(ggdark)
 library(scales)
 
 
-#### ADD
-#--- Titles with Workshop
-#--- The word Values
-#--- ggarrange the plots as a grid?
-
 theme_set(dark_theme_minimal())
 
 main <- "#FF9A5B"
