@@ -7,6 +7,11 @@ library(ggdark)
 library(scales)
 
 
+#### ADD 
+#--- Titles with Workshop
+#--- The word Values
+#--- ggarrange the plots as a grid?
+
 
 # Define Functions
 get_min <- function(Time) { # create a function with the name my_function
@@ -128,7 +133,7 @@ max <- max(bio$Min)
 minutes <- seq(0, max, 0.5)
 mins <- crossing(Min = minutes, 
                  Participant = seq(1, 6, 1),
-                 Group = "A",
+                 Group = group_num,
                  ES = "Biodiversity")
 bio <- bio |>
   mutate(Participant = as.numeric(Participant)) |>
@@ -155,7 +160,7 @@ max <- max(flood$Min)
 minutes <- seq(0, max, 0.5)
 mins <- crossing(Min = minutes, 
                  Participant = seq(1, 6, 1),
-                 Group = "A",
+                 Group = group_num,
                  ES = "Flooding")
 flood <- flood |>
   mutate(Participant = as.numeric(Participant)) |>
@@ -182,7 +187,7 @@ max <- max(qual$Min)
 minutes <- seq(0, max, 0.5)
 mins <- crossing(Min = minutes, 
                  Participant = seq(1, 6, 1),
-                 Group = "A",
+                 Group = group_num,
                  ES = "Water Quality")
 qual <- qual |>
   mutate(Participant = as.numeric(Participant)) |>
@@ -209,7 +214,7 @@ max <- max(swim$Min)
 minutes <- seq(0, max, 0.5)
 mins <- crossing(Min = minutes, 
                  Participant = seq(1, 6, 1),
-                 Group = "A",
+                 Group = group_num,
                  ES = "Swimming")
 swim <- swim |>
   mutate(Participant = as.numeric(Participant)) |>
