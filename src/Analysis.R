@@ -209,7 +209,7 @@ for (i in i:3) {
       rate_of_change = (rollRange - lag(rollRange, n = 10)) / (Min - lag(Min, n = 10))
     )
 
-  #####################  ##########################################  #####################
+####################################################################################
   flood <- data |>
     filter(Group == group_num, value != 0, ES == "Flooding") |>
     mutate(Min = round(Min * 2) / 2) |>
@@ -406,6 +406,7 @@ for (i in i:3) {
       x = "Duration of Deliberation (min)",
       y = "Rate of Convergence"
     ) +
+    ylim(-0.3, 0.3) +
     theme(legend.position = "none")
   mountains[[i]]
 
