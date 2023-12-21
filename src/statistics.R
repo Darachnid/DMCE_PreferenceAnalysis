@@ -139,8 +139,8 @@ check_model(lm3)
 ## Influential Observations, Normality of Residuals do not hold
 
 glm1 <- glm(Convergence ~ Section + Group, data = table)
-glm2 <- lm(Convergence ~ Section + ES, data = table)
-glm3 <- lm(Convergence ~ Section, data = table)
+glm2 <- glm(Convergence ~ Section + ES, data = table)
+glm3 <- glm(Convergence ~ Section, data = table)
 
 check_model(glm1)
 check_model(glm2)
