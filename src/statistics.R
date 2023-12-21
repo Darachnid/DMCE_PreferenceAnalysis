@@ -1,4 +1,3 @@
-
 library(tidyverse)
 library(ggthemes)
 library(ggdark)
@@ -19,51 +18,67 @@ GD <- read_rds("out/data/data_processed_GD.RDS")
 data <- rbind(GA, GB, GC, GD) |>
   select(Group, ES, Min, Convergence) |>
   rename(Rate = Convergence) |>
-  mutate(Convergence = case_when(
-    Rate <= 0 ~ 0,
-    Rate > 0 ~ Rate),
+  mutate(
+    Convergence = case_when(
+      Rate <= 0 ~ 0,
+      Rate > 0 ~ Rate
+    ),
     Divergence = case_when(
       Rate > 0 ~ 0,
-      Rate <= 0 ~ (Rate * -1))
-    ) 
+      Rate <= 0 ~ (Rate * -1)
+    )
+  )
 
 DATA <- NULL
 i <- 0
 groups <- unique(data$Group)
 
-for (i in 0:3){
-i <- i + 1
-group_num <- groups[i]
+for (i in 0:3) {
+  i <- i + 1
+  group_num <- groups[i]
 
 
-bounds <- data |>
-  filter(Group == group_num,
-         Convergence > 0 | Divergence > 0) |>
-  summarise("start" = min(Min),
-            "end" = max(Min))
+  bounds <- data |>
+    filter(
+      Group == group_num,
+      Convergence > 0 | Divergence > 0
+    ) |>
+    summarise(
+      "start" = min(Min),
+      "end" = max(Min)
+    )
 
-sect1_end <- bounds$end / 3
-sect2_end <- 2 * (bounds$end / 3)
+  sect1_end <- bounds$end / 3
+  sect2_end <- 2 * (bounds$end / 3)
 
-DATA[[i]] <- data |>
-  select(-Rate) |>
-  filter(Group == group_num,
-         Min >= bounds$start & Min <= bounds$end) |>
-  mutate(Section = case_when(
-    Min <= sect1_end ~ "Beginning",
-    Min > sect1_end & Min <= sect2_end ~ "Middle",
-    Min > sect2_end ~ "End"),
-    Section = factor(Section, levels = c("Beginning", 
-                                         "Middle",
-                                         "End"))) 
+  DATA[[i]] <- data |>
+    select(-Rate) |>
+    filter(
+      Group == group_num,
+      Min >= bounds$start & Min <= bounds$end
+    ) |>
+    mutate(
+      Section = case_when(
+        Min <= sect1_end ~ "Beginning",
+        Min > sect1_end & Min <= sect2_end ~ "Middle",
+        Min > sect2_end ~ "End"
+      ),
+      Section = factor(Section, levels = c(
+        "Beginning",
+        "Middle",
+        "End"
+      ))
+    )
 }
 
 joined <- rbind(DATA[[1]], DATA[[2]], DATA[[3]], DATA[[4]])
 
 table <- joined |>
   group_by(Group, ES, Section) |>
-  summarise(Convergence = sum(Convergence) * time_interval,
-            Divergence = sum(Divergence) * time_interval)
+  summarise(
+    Convergence = sum(Convergence) * time_interval,
+    Divergence = sum(Divergence) * time_interval
+  )
 
 
 
@@ -136,80 +151,116 @@ check_model(glm3)
 
 con_em <- emmeans(glm2, ~Section)
 
-con_em |> 
+con_em |>
   tidy() |>
-  mutate(Section = factor(Section, levels = c("Beginning", 
-                                    "Middle",
-                                    "End")),
-         upper = estimate + std.error,
-         lower = estimate - std.error) |>
+  mutate(
+    Section = factor(Section, levels = c(
+      "Beginning",
+      "Middle",
+      "End"
+    )),
+    upper = estimate + std.error,
+    lower = estimate - std.error
+  ) |>
   ungroup() |>
   ggplot(aes(x = Section)) +
   geom_point(aes(y = estimate),
-            color = "black") +
-  geom_errorbar(aes(ymin = lower, ymax = upper), 
-                color = "black", 
-                width = 0.5,
-                size = 1) 
+    color = "black"
+  ) +
+  geom_errorbar(aes(ymin = lower, ymax = upper),
+    color = "black",
+    width = 0.5,
+    size = 1
+  )
 
 con_em_predict <- augment(glm2, interval = "confidence") |>
-  mutate(Section = factor(Section, levels = c("Beginning", 
-                                              "Middle",
-                                              "End")),
-         Section = as.numeric(Section))
+  mutate(
+    Section = factor(Section, levels = c(
+      "Beginning",
+      "Middle",
+      "End"
+    )),
+    Section = as.numeric(Section)
+  )
 
 
-ggplot(data = con_em_predict,
-       aes(x = Section)) +
-  geom_jitter(mapping=aes(y=Convergence,
-                         color = ES),
-              width = 0.15,
-              height = 0) +
-  geom_line(mapping = aes(y=.fitted,
-                          color = ES), 
-            size = 1) + 
-  scale_x_continuous(breaks = c(1, 2, 3),
-                     labels = c("Beginning", "Middle", "End")) +
+ggplot(
+  data = con_em_predict,
+  aes(x = Section)
+) +
+  geom_jitter(
+    mapping = aes(
+      y = Convergence,
+      color = ES
+    ),
+    width = 0.15,
+    height = 0
+  ) +
+  geom_line(
+    mapping = aes(
+      y = .fitted,
+      color = ES
+    ),
+    size = 1
+  ) +
+  scale_x_continuous(
+    breaks = c(1, 2, 3),
+    labels = c("Beginning", "Middle", "End")
+  ) +
   scale_y_continuous(breaks = c(0, 1, 2, 3)) +
   theme_minimal() +
   scale_color_colorblind() +
-  labs(title = "Mean Effect of Section on Convergence",
-       subtitle = "1 = Beginning, 2 = Middle, 3 = End",
-       y = "Mean Effect on Convergence") 
+  labs(
+    title = "Mean Effect of Section on Convergence",
+    subtitle = "1 = Beginning, 2 = Middle, 3 = End",
+    y = "Mean Effect on Convergence"
+  )
 
 ggsave("out/Stats/MeanEffect.png", bg = "white")
 
-ggplot(data = con_em_predict,
-       aes(x = Section)) +
-  geom_ribbon(aes(ymin=.lower,
-                  ymax=.upper,
-                  fill= ES), 
-              alpha = 0.4,
-              color = NA) +
-  geom_jitter(mapping=aes(y=Convergence,
-                         color = ES),
-             width = 0,
-             height = 0) +
-  geom_line(mapping = aes(y=.fitted,
-                          color = ES), 
-            size = 1) + 
+ggplot(
+  data = con_em_predict,
+  aes(x = Section)
+) +
+  geom_ribbon(
+    aes(
+      ymin = .lower,
+      ymax = .upper,
+      fill = ES
+    ),
+    alpha = 0.4,
+    color = NA
+  ) +
+  geom_jitter(
+    mapping = aes(
+      y = Convergence,
+      color = ES
+    ),
+    width = 0,
+    height = 0
+  ) +
+  geom_line(
+    mapping = aes(
+      y = .fitted,
+      color = ES
+    ),
+    size = 1
+  ) +
   theme_minimal() +
-  scale_x_continuous(breaks = c(1, 2, 3),
-                     labels = c("Beginning", "Middle", "End")) +
+  scale_x_continuous(
+    breaks = c(1, 2, 3),
+    labels = c("Beginning", "Middle", "End")
+  ) +
   scale_y_continuous(breaks = c(0, 1, 2, 3)) +
-  scale_color_colorblind() + 
+  scale_color_colorblind() +
   scale_fill_colorblind() +
-  facet_wrap(~ES, 
-             nrow = 4)  +
-  labs(title = "Mean Effect of Section on Convergence",
-       subtitle = "1 = Beginning, 2 = Middle, 3 = End",
-       y = "Mean Effect +- standard error")
+  facet_wrap(~ES,
+    nrow = 4
+  ) +
+  labs(
+    title = "Mean Effect of Section on Convergence",
+    subtitle = "1 = Beginning, 2 = Middle, 3 = End",
+    y = "Mean Effect +- standard error"
+  )
 
 ggsave("out/Stats/MeanEffect_faceted.png", bg = "white")
-
-
-
-
-
-
-
