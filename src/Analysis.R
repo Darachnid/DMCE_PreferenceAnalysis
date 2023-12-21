@@ -1,3 +1,4 @@
+
 library(tidyverse)
 library(ggthemes)
 library(ggpubr)
@@ -329,7 +330,7 @@ for (i in i:3) {
     labs(
       title = paste0("Workshop ", group_num),
       x = "Duration of Deliberation (min)",
-      y = "Level of Convergence"
+      y = "Convergence"
     )
   converge[[i]]
 
@@ -365,19 +366,18 @@ for (i in i:3) {
 
   ## Mountains
   mountains[[i]] <- allA |>
-    mutate(Rate = rescale(rate_of_change, to = c(-3, 3), from = c(3, -3))) |>
     mutate(
       Rate_p = case_when(
-        Rate <= 0 ~ 0,
-        Rate > 0 ~ Rate
+        Convergence <= 0 ~ 0,
+        Convergence > 0 ~ Convergence
       ),
       Rate_n = case_when(
-        Rate >= 0 ~ 0,
-        Rate < 0 ~ Rate
+        Convergence >= 0 ~ 0,
+        Convergence < 0 ~ Convergence
       )
     ) |>
     ggplot(aes(x = Min)) +
-    geom_line(aes(y = Rate), color = accent, size = 0.8) +
+    geom_line(aes(y = Convergence), color = accent, size = 0.8) +
     geom_ribbon(
       aes(
         ymin = 0,
@@ -394,6 +394,7 @@ for (i in i:3) {
       fill = secondary,
       alpha = 0.4
     ) +
+    
     geom_hline(yintercept = 0, alpha = 0.2) +
     facet_wrap(~ES, nrow = 4) +
     labs(
@@ -404,6 +405,9 @@ for (i in i:3) {
     ylim(-0.3, 0.3) +
     theme(legend.position = "none")
   mountains[[i]]
+  
+  allA |>
+    saveRDS(paste0("out/data/data_processed_G", group_num, ".RDS"))
 
   ggsave(paste0(here::here("out/Group_"), group_num, "_mtns.png"), width = 400, height = 200, units = "mm", bg = "white")
 }
@@ -422,3 +426,17 @@ ggsave(here::here("out/All_rate.png"), width = 300, height = 300, units = "mm")
 
 ggarrange(mountains[[1]], mountains[[2]], mountains[[3]], mountains[[4]])
 ggsave(here::here("out/All_Mtns.png"), width = 300, height = 300, units = "mm")
+
+allA |>
+  mutate(
+    Rate_p = case_when(
+      Convergence <= 0 ~ 0,
+      Convergence > 0 ~ Convergence
+    ),
+    Rate_n = case_when(
+      Convergence >= 0 ~ 0,
+      Convergence < 0 ~ Convergence
+    )
+  ) |>
+  saveRDS("out/data/data_processed.RDS")
+
