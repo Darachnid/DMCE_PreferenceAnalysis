@@ -5,9 +5,12 @@ library(scales)
 library(performance)
 library(emmeans)
 library(broom)
-
+library(car)
+library(ggpubr)
 
 theme_set(theme_minimal())
+main <- "#FF9A5B"
+secondary <- "#A199FF"
 
 time_interval <- 0.5
 
@@ -78,7 +81,8 @@ table <- joined |>
   summarise(
     Convergence = sum(Convergence) * time_interval,
     Divergence = sum(Divergence) * time_interval
-  )
+  ) |>
+  mutate(Convergent = as.integer(Convergence > 0))
 
 
 
@@ -136,20 +140,70 @@ lm3 <- lm(Convergence ~ Section, data = table)
 check_model(lm1)
 check_model(lm2)
 check_model(lm3)
-## Influential Observations, Normality of Residuals do not hold
 
 glm1 <- glm(Convergence ~ Section + Group, data = table)
 glm2 <- glm(Convergence ~ Section + ES, data = table)
 glm3 <- glm(Convergence ~ Section, data = table)
+glm4 <- glm(Convergent ~ Section + Group, data = table, family = binomial(link = "logit"))
+glm5 <- glm(Convergent ~ Section + ES, data = table, family = binomial(link = "logit"))
+glm6 <- glm(Convergent ~ Section, data = table, family = binomial(link = "logit"))
 
-check_model(glm1)
-check_model(glm2)
-check_model(glm3)
+tabl <- table |>
+  filter(Convergent == 1)
+
+glm8 <- glm(Convergence ~ Section + Group, data = tabl)
+glm9 <- glm(Convergence ~ Section + ES, data = tabl)
+glm10 <- glm(Convergence ~ Section, data = tabl)
 
 
-## They aren't perfect but glm2 seems the best
+## Homo of Var
+plot(fitted(glm1), residuals(glm1))
+abline(h = 0, col = "red")
+plot(fitted(glm2), residuals(glm2))
+abline(h = 0, col = "red")
+plot(fitted(glm3), residuals(glm3))
+abline(h = 0, col = "red")
+plot(fitted(glm4), residuals(glm4))
+abline(h = 0, col = "red")
+plot(fitted(glm5), residuals(glm5))
+abline(h = 0, col = "red")
+plot(fitted(glm6), residuals(glm6))
+abline(h = 0, col = "red")
 
-con_em <- emmeans(glm2, ~Section)
+plot(fitted(glm8), residuals(glm8))
+abline(h = 0, col = "red")
+plot(fitted(glm9), residuals(glm9))
+abline(h = 0, col = "red")
+plot(fitted(glm10), residuals(glm10))
+abline(h = 0, col = "red")
+
+
+###### Rules out
+# 3, 5, 6, 10
+# VIF 
+vif(glm1)
+vif(glm2)
+vif(glm8)
+vif(glm9)
+
+### All Passed
+
+aic <- compare_performance(glm1, glm2, glm8, glm9, rank = TRUE)
+aic
+
+ggtexttable(aic, rows = NULL,
+                   theme = ttheme("light")) 
+
+ggsave("out/Tables/AIC.png", bg = "white", width = 9, height = 1.5)
+
+
+
+con_em <- emmeans(glm8, ~Section)
+
+pa <- pairs(con_em, adjust = "tukey") |> tidy()
+ggtexttable(pa, rows = NULL,
+            theme = ttheme("light")) 
+ggsave("out/Tables/tukey.png", bg = "white", width = 7.5, height = 1.5)
 
 con_em |>
   tidy() |>
@@ -173,7 +227,7 @@ con_em |>
     size = 1
   )
 
-con_em_predict <- augment(glm2, interval = "confidence") |>
+con_em_predict <- augment(glm8, interval = "confidence") |>
   mutate(
     Section = factor(Section, levels = c(
       "Beginning",
@@ -191,7 +245,7 @@ ggplot(
   geom_jitter(
     mapping = aes(
       y = Convergence,
-      color = ES
+      color = Group
     ),
     width = 0.15,
     height = 0
@@ -199,7 +253,7 @@ ggplot(
   geom_line(
     mapping = aes(
       y = .fitted,
-      color = ES
+      color = Group
     ),
     size = 1
   ) +
@@ -207,60 +261,13 @@ ggplot(
     breaks = c(1, 2, 3),
     labels = c("Beginning", "Middle", "End")
   ) +
-  scale_y_continuous(breaks = c(0, 1, 2, 3)) +
   theme_minimal() +
   scale_color_colorblind() +
   labs(
     title = "Mean Effect of Section on Convergence",
-    subtitle = "1 = Beginning, 2 = Middle, 3 = End",
+    subtitle = "glm(Convergence ~ Section + Group)",
     y = "Mean Effect on Convergence"
   )
 
 ggsave("out/Stats/MeanEffect.png", bg = "white")
 
-ggplot(
-  data = con_em_predict,
-  aes(x = Section)
-) +
-  geom_ribbon(
-    aes(
-      ymin = .lower,
-      ymax = .upper,
-      fill = ES
-    ),
-    alpha = 0.4,
-    color = NA
-  ) +
-  geom_jitter(
-    mapping = aes(
-      y = Convergence,
-      color = ES
-    ),
-    width = 0,
-    height = 0
-  ) +
-  geom_line(
-    mapping = aes(
-      y = .fitted,
-      color = ES
-    ),
-    size = 1
-  ) +
-  theme_minimal() +
-  scale_x_continuous(
-    breaks = c(1, 2, 3),
-    labels = c("Beginning", "Middle", "End")
-  ) +
-  scale_y_continuous(breaks = c(0, 1, 2, 3)) +
-  scale_color_colorblind() +
-  scale_fill_colorblind() +
-  facet_wrap(~ES,
-    nrow = 4
-  ) +
-  labs(
-    title = "Mean Effect of Section on Convergence",
-    subtitle = "1 = Beginning, 2 = Middle, 3 = End",
-    y = "Mean Effect +- standard error"
-  )
-
-ggsave("out/Stats/MeanEffect_faceted.png", bg = "white")
