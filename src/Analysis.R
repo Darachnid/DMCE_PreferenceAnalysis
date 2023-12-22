@@ -4,11 +4,10 @@ library(ggthemes)
 library(ggpubr)
 library(zoo)
 library(patchwork)
-library(ggdark)
 library(scales)
 
 
-theme_set(dark_theme_minimal())
+theme_set(theme_minimal())
 
 main <- "#FF9A5B"
 secondary <- "#A199FF"
@@ -24,6 +23,9 @@ participant_cols <- c(
   "#FFCA69",
   "#C9FFA7"
 )
+
+time_interval <- 0.5
+window <- 10
 
 
 # Define Functions
@@ -71,7 +73,7 @@ for (i in i:3) {
     geom_step(
       size = 1,
       position = "identity",
-      aes(color = Participant)
+      aes(color = Participant), alpha = 1
     ) +
     #  scale_color_colorblind() +
     labs(
@@ -85,10 +87,10 @@ for (i in i:3) {
     ) +
     scale_y_continuous(minor_breaks = NULL) +
     facet_wrap(~ES, nrow = 4) +
-    scale_color_manual(values = participant_cols)
+    scale_color_colorblind()
   origin[[i]]
 
-  ggsave(paste0(here::here("out/Group_"), group_num, "_og.png"), width = 400, height = 200, units = "mm", bg = "white")
+  ggsave(paste0(here::here("out/Group_"), group_num, "_og.png"), width = 200, height = 100, units = "mm", bg = "white")
 }
 
 
@@ -109,7 +111,7 @@ for (i in i:3) {
 
   interpolated <- group |>
     complete(
-      Min = seq(min(Min), max(Min), by = 0.01),
+      Min = seq(min(Min), max(Min), by = time_interval),
       Group = group_num,
       Participant = factor(1:6),
       ES = ES
@@ -120,34 +122,40 @@ for (i in i:3) {
     arrange(Group, Participant, ES, Min) |>
     group_by(Group, Participant, ES) |>
     fill(Value, .direction = "down") |>
-    mutate(Value = round(Value)) |>
+    mutate(Value = round(Value) - 1,
+           Min = round(Min / time_interval) * time_interval) |>
     ungroup()
 
   joinedT <- interpolated |>
     group_by(Group, ES, Min) |>
-    mutate("Value" = Value - 1) |>
-    summarise(
-      "ES" = ES,
-      "Group" = Group,
-      "Min" = Min,
-      "Max" = max(Value),
-      "Minimum" = min(Value),
-      "Mean" = mean(Value),
-      "sd" = sd(Value)
+    reframe(
+      ES = ES,
+      Group = Group,
+      Min = Min,
+      Max = max(Value),
+      Minimum = min(Value),
+      Mean = mean(Value),
+      sd = sd(Value)
     ) |>
     left_join(interpolated, by = c("Group", "ES", "Min"))
 
   boxes[[i]] <- ggplot(joinedT, aes(
     x = Min,
     y = Value
-  )) +
+  )) + 
     geom_ribbon(
       aes(
         ymin = Minimum,
         ymax = Max
       ),
-      alpha = 0.4,
-      fill = main
+      alpha = 1,
+      fill = "grey10",
+    ) +
+    geom_step(
+      size = 1,
+      position = "identity",
+      alpha = 0.1,
+      aes(color = Participant) 
     ) +
     labs(
       title = paste0("Workshop ", group_num),
@@ -159,17 +167,16 @@ for (i in i:3) {
       minor_breaks = NULL
     ) +
     scale_y_continuous(minor_breaks = NULL) +
-    facet_wrap(~ES, nrow = 4)
+    facet_wrap(~ES, nrow = 4) +
+    scale_color_manual(values = c(rep("grey70", 6)))
   boxes[[i]]
 
-  ggsave(paste0(here::here("out/Group_"), group_num, "_boxes.png"), width = 400, height = 200, units = "mm", bg = "white")
+  ggsave(paste0(here::here("out/Group_"), group_num, "_boxes.png"), width = 200, height = 100, units = "mm", bg = "white")
 
 
 
   ## Rolling Data Prep
 
-  time_interval <- 0.5
-  window <- 10
   k <- round(window / time_interval)
 
   #####################  ##########################################  #####################
@@ -315,16 +322,15 @@ for (i in i:3) {
   converge[[i]] <- allA |>
     ggplot(aes(x = Min)) +
     geom_line(aes(y = Inverted_Range),
-      color = main,
-      size = 0.8
+      size = 0.8, color = "black"
     ) +
     geom_ribbon(
       aes(
         ymin = rescale(min - 1, to = c(0, 3)),
         ymax = rescale(max - 1, to = c(0, 3))
       ),
-      fill = main,
-      alpha = 0.1
+      alpha = 0.1,
+      fill = "grey50"
     ) +
     facet_wrap(~ES, nrow = 4) +
     labs(
@@ -334,14 +340,14 @@ for (i in i:3) {
     )
   converge[[i]]
 
-  ggsave(paste0(here::here("out/Group_"), group_num, "_converge.png"), width = 400, height = 200, units = "mm", bg = "white")
+  ggsave(paste0(here::here("out/Group_"), group_num, "_converge.png"), width = 200, height = 100, units = "mm", bg = "white")
 
 
   ## Convergence Rate
   rate[[i]] <- allA |>
     ggplot(aes(x = Min)) +
     geom_line(aes(y = Convergence),
-      color = main,
+      color = "black",
       size = 0.8
     ) +
     geom_ribbon(
@@ -349,7 +355,7 @@ for (i in i:3) {
         ymin = rescale(min - 1, to = c(-0.2, 0.2)),
         ymax = rescale(max - 1, to = c(-0.2, 0.2))
       ),
-      fill = main,
+      fill = "grey50",
       alpha = 0.1
     ) +
     facet_wrap(~ES, nrow = 4) +
@@ -361,7 +367,7 @@ for (i in i:3) {
   rate[[i]]
 
 
-  ggsave(paste0(here::here("out/Group_"), group_num, "_converge_rate.png"), width = 400, height = 200, units = "mm", bg = "white")
+  ggsave(paste0(here::here("out/Group_"), group_num, "_converge_rate.png"), width = 200, height = 100, units = "mm", bg = "white")
 
 
   ## Mountains
@@ -377,6 +383,14 @@ for (i in i:3) {
       )
     ) |>
     ggplot(aes(x = Min)) +
+    geom_ribbon(
+      aes(
+        ymin = rescale(min - 1, to = c(-0.2, 0.2)),
+        ymax = rescale(max - 1, to = c(-0.2, 0.2))
+      ),
+      fill = "grey75",
+      alpha = 0.1
+    ) +
     geom_line(aes(y = Convergence), color = accent, size = 0.8) +
     geom_ribbon(
       aes(
@@ -409,7 +423,7 @@ for (i in i:3) {
   allA |>
     saveRDS(paste0("out/data/data_processed_G", group_num, ".RDS"))
 
-  ggsave(paste0(here::here("out/Group_"), group_num, "_mtns.png"), width = 400, height = 200, units = "mm", bg = "white")
+  ggsave(paste0(here::here("out/Group_"), group_num, "_mtns.png"), width = 200, height = 100,  units = "mm", bg = "white")
 }
 
 ggarrange(origin[[1]], origin[[2]], origin[[3]], origin[[4]])
