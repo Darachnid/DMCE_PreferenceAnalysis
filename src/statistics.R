@@ -1,12 +1,11 @@
 library(tidyverse)
 library(ggthemes)
-library(ggdark)
 library(scales)
 library(performance)
 library(emmeans)
 library(broom)
 library(car)
-library(ggpubr)
+
 
 theme_set(theme_minimal())
 main <- "#FF9A5B"
@@ -88,11 +87,12 @@ table <- joined |>
 
 ######### Boxplots
 
-table |>
+consec <- table |>
   ggplot(aes(x = Section, y = Convergence)) +
   geom_boxplot(fill = "white", color = "black") +
+  labs(title = "Section of Deliberation")
+consec +
   labs(title = "Covergence per Section of Deliberation")
-
 ggsave("out/summaryStats/Convergence_X_section.png", bg = "white")
 
 table |>
@@ -102,25 +102,27 @@ table |>
 
 ggsave("out/summaryStats/Divergence_X_section.png", bg = "white")
 
-table |>
+congroup <- table |>
   ggplot(aes(x = Group, y = Convergence)) +
   geom_boxplot(fill = "white", color = "black") +
-  labs(title = "Covergence per Group")
-
+  labs(title = "Deliberation", x = "Deliberation")
+congroup +
+  labs(title = "Covergence per Deliberation")
 ggsave("out/summaryStats/Convergence_X_group.png", bg = "white")
 
 table |>
   ggplot(aes(x = Group, y = Divergence)) +
   geom_boxplot(fill = "white", color = "black") +
-  labs(title = "Divergence per Group")
+  labs(title = "Divergence per Deliberation")
 
 ggsave("out/summaryStats/Divergence_X_group.png", bg = "white")
 
-table |>
+cones <- table |>
   ggplot(aes(x = ES, y = Convergence)) +
   geom_boxplot(fill = "white", color = "black") +
+  labs(title = "Ecosystem Service")
+cones +
   labs(title = "Covergence per Ecosystem Service")
-
 ggsave("out/summaryStats/Convergence_X_ES.png", bg = "white")
 
 table |>
@@ -130,6 +132,10 @@ table |>
 
 ggsave("out/summaryStats/Divergence_X_ES.png", bg = "white")
 
+ggarrange(consec, congroup, cones, nrow = 1) |>
+  annotate_figure(top = text_grob("Convergence across", size = 16))
+
+ggsave("out/summaryStats/ConvergenceXall.png", bg = "white", scale = 0.8) 
 
 ############### Linear Model
 
@@ -265,9 +271,40 @@ ggplot(
   scale_color_colorblind() +
   labs(
     title = "Mean Effect of Section on Convergence",
-    subtitle = "glm(Convergence ~ Section + Group)",
+    subtitle = "glm(Convergence ~ Section + Deliberation)",
     y = "Mean Effect on Convergence"
   )
 
 ggsave("out/Stats/MeanEffect.png", bg = "white")
+
+
+## Convergence after filtering
+consec <- tabl |>
+  ggplot(aes(x = Section, y = Convergence)) +
+  geom_boxplot(fill = "white", color = "black") +
+  labs(title = "Section of Deliberation")
+consec +
+  labs(title = "Covergence per Section of Deliberation")
+ggsave("out/summaryStats/Convergence_X_section_filt.png", bg = "white")
+
+congroup <- tabl |>
+  ggplot(aes(x = Group, y = Convergence)) +
+  geom_boxplot(fill = "white", color = "black") +
+  labs(title = "Deliberation", x = "Deliberation")
+congroup +
+  labs(title = "Covergence per Deliberation")
+ggsave("out/summaryStats/Convergence_X_group_filt.png", bg = "white")
+
+cones <- tabl |>
+  ggplot(aes(x = ES, y = Convergence)) +
+  geom_boxplot(fill = "white", color = "black") +
+  labs(title = "Ecosystem Service")
+cones +
+  labs(title = "Covergence per Ecosystem Service")
+ggsave("out/summaryStats/Convergence_X_ES_filt.png", bg = "white")
+
+ggarrange(consec, congroup, cones, nrow = 1) |>
+  annotate_figure(top = text_grob("Convergence across", size = 16))
+
+ggsave("out/summaryStats/ConvergenceXall_filt.png", bg = "white", scale = 0.8) 
 

@@ -1,7 +1,6 @@
 
 library(tidyverse)
 library(ggthemes)
-library(ggpubr)
 library(zoo)
 library(patchwork)
 library(scales)
@@ -77,9 +76,9 @@ for (i in i:3) {
     ) +
     #  scale_color_colorblind() +
     labs(
-      title = paste0("Workshop ", group_num),
+      title = paste0("Deliberation ", group_num),
       x = "Duration of Deliberation (min)",
-      y = "Importance"
+      y = "Importance Ranking"
     ) +
     scale_x_continuous(
       breaks = seq(0, 100, 10),
@@ -88,7 +87,11 @@ for (i in i:3) {
     scale_y_continuous(minor_breaks = NULL) +
     facet_wrap(~ES, nrow = 4) +
     scale_color_colorblind()
-  origin[[i]]
+  origin[[i]] + labs(
+    title = paste0("Deliberation ", group_num, ": Value Dynamics"),
+    x = "Duration of Deliberation (min)",
+    y = "Importance Ranking"
+  )
 
   ggsave(paste0(here::here("out/Group_"), group_num, "_og.png"), width = 200, height = 100, units = "mm", bg = "white")
 }
@@ -158,7 +161,7 @@ for (i in i:3) {
       aes(color = Participant) 
     ) +
     labs(
-      title = paste0("Workshop ", group_num),
+      title = paste0("Deliberation ", group_num),
       x = "Duration of Deliberation (min)",
       y = "Importance"
     ) +
@@ -169,7 +172,11 @@ for (i in i:3) {
     scale_y_continuous(minor_breaks = NULL) +
     facet_wrap(~ES, nrow = 4) +
     scale_color_manual(values = c(rep("grey70", 6)))
-  boxes[[i]]
+  boxes[[i]] + labs(
+    title = paste0("Deliberation ", group_num, ": Range Dynamics"),
+    x = "Duration of Deliberation (min)",
+    y = "Importance Ranking"
+  )
 
   ggsave(paste0(here::here("out/Group_"), group_num, "_boxes.png"), width = 200, height = 100, units = "mm", bg = "white")
 
@@ -334,11 +341,15 @@ for (i in i:3) {
     ) +
     facet_wrap(~ES, nrow = 4) +
     labs(
-      title = paste0("Workshop ", group_num),
+      title = paste0("Deliberation ", group_num),
       x = "Duration of Deliberation (min)",
       y = "Convergence"
     )
-  converge[[i]]
+  converge[[i]] + labs(
+    title = paste0("Deliberation ", group_num, ": Convergence"),
+    x = "Duration of Deliberation (min)",
+    y = "Convergence"
+  )
 
   ggsave(paste0(here::here("out/Group_"), group_num, "_converge.png"), width = 200, height = 100, units = "mm", bg = "white")
 
@@ -360,11 +371,15 @@ for (i in i:3) {
     ) +
     facet_wrap(~ES, nrow = 4) +
     labs(
-      title = paste0("Workshop ", group_num),
+      title = paste0("Deliberation ", group_num),
       x = "Duration of Deliberation (min)",
-      y = "Rate of Convergence"
+      y = "Rolling Convergence Rate (ranking per min)"
     )
-  rate[[i]]
+  rate[[i]] + labs(
+    title = paste0("Deliberation ", group_num, ": Convergence Rate"),
+    x = "Duration of Deliberation (min)",
+    y = "Rolling Convergence Rate (ranking per min)"
+  )
 
 
   ggsave(paste0(here::here("out/Group_"), group_num, "_converge_rate.png"), width = 200, height = 100, units = "mm", bg = "white")
@@ -412,13 +427,17 @@ for (i in i:3) {
     geom_hline(yintercept = 0, alpha = 0.2) +
     facet_wrap(~ES, nrow = 4) +
     labs(
-      title = paste0("Workshop ", group_num),
+      title = paste0("Deliberation ", group_num),
       x = "Duration of Deliberation (min)",
-      y = "Rate of Convergence"
+      y = "Rolling Convergence Rate (ranking per min)"
     ) +
     ylim(-0.3, 0.3) +
     theme(legend.position = "none")
-  mountains[[i]]
+  mountains[[i]] + labs(
+    title = paste0("Deliberation ", group_num, ": Convergence Rate"),
+    x = "Duration of Deliberation (min)",
+    y = "Rolling Convergence Rate (ranking per min)"
+  )
   
   allA |>
     saveRDS(paste0("out/data/data_processed_G", group_num, ".RDS"))
@@ -426,20 +445,26 @@ for (i in i:3) {
   ggsave(paste0(here::here("out/Group_"), group_num, "_mtns.png"), width = 200, height = 100,  units = "mm", bg = "white")
 }
 
-ggarrange(origin[[1]], origin[[2]], origin[[3]], origin[[4]])
-ggsave(here::here("out/All_origin.png"), width = 300, height = 300, units = "mm")
+ggarrange(origin[[1]], origin[[2]], origin[[3]], origin[[4]], legend = "none") |>
+annotate_figure(top = text_grob("Preference Analysis Plot", size = 18))
+ggsave(here::here("out/All_origin.png"), width = 300, height = 300, units = "mm", bg = "white")
 
-ggarrange(boxes[[1]], boxes[[2]], boxes[[3]], boxes[[4]])
-ggsave(here::here("out/All_boxes.png"), width = 300, height = 300, units = "mm")
+ggarrange(boxes[[1]], boxes[[2]], boxes[[3]], boxes[[4]], legend = "none") |>
+annotate_figure(top = text_grob("Range of Values", size = 18))
+ggsave(here::here("out/All_boxes.png"), width = 300, height = 300, units = "mm", bg = "white")
 
-ggarrange(converge[[1]], converge[[2]], converge[[3]], converge[[4]])
-ggsave(here::here("out/All_converge.png"), width = 300, height = 300, units = "mm")
+ggarrange(converge[[1]], converge[[2]], converge[[3]], converge[[4]]) |>
+  annotate_figure(top = text_grob("Convergence", size = 18))
+ggsave(here::here("out/All_converge.png"), width = 300, height = 300, units = "mm", bg = "white")
 
-ggarrange(rate[[1]], rate[[2]], rate[[3]], rate[[4]])
-ggsave(here::here("out/All_rate.png"), width = 300, height = 300, units = "mm")
+ggarrange(rate[[1]], rate[[2]], rate[[3]], rate[[4]]) |>
+  annotate_figure(top = text_grob("Rate of Convergence", size = 18))
 
-ggarrange(mountains[[1]], mountains[[2]], mountains[[3]], mountains[[4]])
-ggsave(here::here("out/All_Mtns.png"), width = 300, height = 300, units = "mm")
+ggsave(here::here("out/All_rate.png"), width = 300, height = 300, units = "mm", bg = "white")
+
+ggarrange(mountains[[1]], mountains[[2]], mountains[[3]], mountains[[4]]) |>
+  annotate_figure(top = text_grob("Rate of Convergence", size = 18))
+ggsave(here::here("out/All_Mtns.png"), width = 300, height = 300, units = "mm", bg = "white")
 
 allA |>
   mutate(
