@@ -5,6 +5,7 @@ library(performance)
 library(emmeans)
 library(broom)
 library(car)
+library(dotwhisker)
 
 
 theme_set(theme_minimal())
@@ -155,9 +156,10 @@ glm5 <- glm(Convergent ~ Section + ES, data = table, family = binomial(link = "l
 glm6 <- glm(Convergent ~ Section, data = table, family = binomial(link = "logit"))
 
 tabl <- table |>
-  filter(Convergent == 1)
+  filter(Convergent == 1) |>
+  rename("Workshop" = Group)
 
-glm8 <- glm(Convergence ~ Section + Group, data = tabl)
+glm8 <- glm(Convergence ~ Section + Workshop, data = tabl)
 glm9 <- glm(Convergence ~ Section + ES, data = tabl)
 glm10 <- glm(Convergence ~ Section, data = tabl)
 
@@ -202,6 +204,33 @@ ggtexttable(aic, rows = NULL,
 
 ggsave("out/Tables/AIC.png", bg = "white", width = 9, height = 1.5)
 
+tidy(glm8) |>
+ggplot(aes(y = estimate,
+           x = factor(term, 
+                      levels = rev(c("(Intercept)", "WorkshopB", "WorkshopC", 
+                                 "WorkshopD", "SectionMiddle", 
+                                 "SectionEnd"))))) +
+  geom_hline(yintercept = 0,
+             color = "red",
+             size = 1,
+             alpha = 0.4) +
+  geom_point(color = "black") +
+  geom_errorbar(aes(ymin = estimate - std.error * 1.96,
+                    ymax = estimate + std.error * 1.96)) +
+  ylim(-2, 2) +
+  coord_flip() +
+  labs(title = "GLM Coefficients",
+       y = "Coefficient Estimate",
+       x = "Predictor Variable") 
+
+ggsave("out/Stats/GLMcoeff.png", bg = "white")
+
+tidy(glm8) |>
+  ggtexttable(rows = NULL,
+              theme = ttheme("light")) 
+ggsave("out/Tables/glm.png", bg = "white", width = 5.2, height = 2)
+
+############# Estimated Marginal Means
 
 
 con_em <- emmeans(glm8, ~Section)
@@ -210,6 +239,19 @@ pa <- pairs(con_em, adjust = "tukey") |> tidy()
 ggtexttable(pa, rows = NULL,
             theme = ttheme("light")) 
 ggsave("out/Tables/tukey.png", bg = "white", width = 7.5, height = 1.5)
+
+
+ggplot(pa, aes(x = estimate, y = reorder(contrast, estimate))) +
+  geom_point() +
+  geom_errorbar(aes(xmin = estimate - std.error * 1.96, xmax = estimate + std.error * 1.96), width = 0.2) +
+  geom_vline(xintercept = 0, color = "red",
+             size = 1, alpha = 0.4) + 
+  labs(title = "Mean Contrasts for the Effect of Section on Convergence",
+       x = "Estimated Difference",
+       y = "Section Contrast") +
+  xlim(-2, 2)
+ggsave("out/Stats/GLMcontrasts.png", bg = "white")
+
 
 con_em |>
   tidy() |>
@@ -251,7 +293,7 @@ ggplot(
   geom_jitter(
     mapping = aes(
       y = Convergence,
-      color = Group
+      color = Workshop
     ),
     width = 0.15,
     height = 0
@@ -259,7 +301,7 @@ ggplot(
   geom_line(
     mapping = aes(
       y = .fitted,
-      color = Group
+      color = Workshop
     ),
     size = 1
   ) +
