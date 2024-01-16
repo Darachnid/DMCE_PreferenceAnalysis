@@ -126,7 +126,7 @@ Table 1: Akaike information criterion corrected for small sample sizes (AICc)
 
 ## Model Results
 
-The GLM that was selected has a null deviance of 14.96 and a residual deviance of 6.049. This reduction indicates that the model explains a substantial portion of the variability observed in the convergence. The effect of being in the middle section of the deliberation does not significantly affect the convergence (p = 2.4e-1), but the effect of being in the end section is associated with a mean convergence increase of 1.18 (p = 3.7e-4). Deliberation B (p=6.2e-1) and deliberation D (p=7.8e-1) did not significantly affect convergence. However, deliberation C has a significant effect of -0.6 (p=1.6e-2), representing the only negative and significant estimate in the model. See Table X for the complete list of estimates with their standard error, z-statistic, and p-value.
+The GLM that was selected has a null deviance of 14.96 and a residual deviance of 6.049. This reduction indicates that the model explains a substantial portion of the variability observed in the convergence. The effect of being in the middle section of the deliberation does not significantly affect the convergence (p = 2.4e-1), but the effect of being in the end section is associated with a mean convergence increase of 1.18 (p = 3.7e-4). Deliberation B (p=6.2e-1) and deliberation D (p=7.8e-1) did not significantly affect convergence. However, deliberation C has a significant effect of -0.6 (p=1.6e-2), representing the only negative and significant estimate in the model. See Table 2 for the complete list of estimates with their standard error, z-statistic, and p-value.
 
 ![](out/Tables/tukey.png)
 
